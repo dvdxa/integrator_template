@@ -48,8 +48,8 @@ func (a Adapter) PreCheck(adapterRequest *agent.AdapterRequest) (*agent.Response
 	//if response.Status == 400 {
 	//...
 	//}
-	humoResp := utils.ToAgentResponse(response)
-	return humoResp, nil
+	agentResp := utils.ToAgentResponse(response)
+	return agentResp, nil
 }
 
 func (a Adapter) TemplatePayment(adapterRequest *agent.AdapterRequest) (*agent.Response, error) {
@@ -74,8 +74,8 @@ func (a Adapter) TemplatePayment(adapterRequest *agent.AdapterRequest) (*agent.R
 	//if response.Status == 400 {
 	//...
 	//}
-	humoResp := utils.ToAgentResponse(response)
-	return humoResp, nil
+	agentResp := utils.ToAgentResponse(response)
+	return agentResp, nil
 }
 
 func (a Adapter) makeRequest(reqBody []byte, reqAddress string, sign string) (*http.Response, error) {
