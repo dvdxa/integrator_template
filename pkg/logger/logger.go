@@ -1,28 +1,38 @@
 package logger
 
 import (
-	"github.com/sirupsen/logrus"
-	"integrator_template/config"
+	"fmt"
+	"io"
+	"log"
 	"os"
+	"path"
+	"runtime"
+
+	"github.com/sirupsen/logrus"
 )
 
-type fileHook struct {
-	LevelsArr []logrus.Level
-	Files     map[logrus.Level]*os.File
+type writeHook struct {
+	Writer    []io.Writer
+	LogLevels []logrus.Level
 }
 
-func (hook *fileHook) Fire(entry *logrus.Entry) error {
-	for _, level := range hook.LevelsArr {
-		if entry.Level <= level {
-			entry.Logger.Out = hook.Files[level]
-			break
+func (hook *writeHook) Fire(entry *logrus.Entry) error {
+	line, err := entry.String()
+	if err != nil {
+		return err
+	}
+	for _, w := range hook.Writer {
+		_, err := w.Write([]byte(line))
+		if err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
 
-func (hook *fileHook) Levels() []logrus.Level {
-	return hook.LevelsArr
+func (hook *writeHook) Levels() []logrus.Level {
+	return hook.LogLevels
 }
 
 var e *logrus.Entry
@@ -35,31 +45,35 @@ func GetLogger() *Logger {
 	return &Logger{e}
 }
 
-func InitLog(cfg *config.Config) {
-	logger := logrus.New()
-	logger.SetReportCaller(true)
-
-	logger.SetFormatter(&logrus.JSONFormatter{})
-
-	file, err := os.OpenFile("./logs/app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		logger.Fatal(err)
+func init() {
+	l := logrus.New()
+	l.SetReportCaller(true)
+	l.Formatter = &logrus.TextFormatter{
+		CallerPrettyfier: func(frame *runtime.Frame) (function string, file string) {
+			filename := path.Base(frame.File)
+			return fmt.Sprintf("%s()", frame.Function), fmt.Sprintf("%s:%d", filename, frame.Line)
+		},
+		DisableColors: false,
+		FullTimestamp: true,
 	}
-	logger.SetOutput(file)
-	/*	logger.AddHook(&fileHook{
-		LevelsArr: []logrus.Level{
-			logrus.DebugLevel,
-			logrus.InfoLevel,
-			logrus.ErrorLevel,
-		},
-		Files: map[logrus.Level]*os.File{
-			logrus.DebugLevel: file,
-			logrus.InfoLevel:  file,
-			logrus.ErrorLevel: file,
-		},
-	})*/
 
-	e = logger.WithFields(logrus.Fields{
-		"service": cfg.Server.Name,
+	err := os.MkdirAll("./logs", 0777)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	allFile, err := os.OpenFile("./logs/all.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0777)
+	if err != nil {
+		log.Fatal(err)
+	}
+	l.SetOutput(io.Discard)
+
+	l.AddHook(&writeHook{
+		Writer:    []io.Writer{allFile, os.Stdout},
+		LogLevels: logrus.AllLevels,
 	})
+
+	l.SetLevel(logrus.TraceLevel)
+
+	e = logrus.NewEntry(l)
 }
