@@ -3,8 +3,8 @@ package config
 import "github.com/spf13/viper"
 
 func InitConfigs() (*Config, error) {
-	viper.AddConfigPath("config") //адрес директории
-	viper.SetConfigName("config") //имя файла
+	viper.AddConfigPath("config")
+	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
 	err := viper.ReadInConfig()
 	if err != nil {

@@ -15,7 +15,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to init configs %v", err)
 	}
-	logger.InitLog(cfg)
 	log := logger.GetLogger()
 	adapters := vend.NewAdapter(&cfg.Adapter, log)
 	services := agent.NewService(adapters)
